@@ -19,7 +19,6 @@ type Config struct {
 	Port               uint
 	AdminPort          uint
 
-	EnableIngestionFiltering    bool
 	CaptiveCoreBinaryPath       string
 	CaptiveCoreConfigPath       string
 	CaptiveCoreTomlParams       ledgerbackend.CaptiveCoreTomlParams
@@ -38,12 +37,14 @@ type Config struct {
 
 	SSEUpdateFrequency time.Duration
 	ConnectionTimeout  time.Duration
+	ClientQueryTimeout time.Duration
 	// MaxHTTPRequestSize is the maximum allowed request payload size
-	MaxHTTPRequestSize uint
-	RateQuota          *throttled.RateQuota
-	FriendbotURL       *url.URL
-	LogLevel           logrus.Level
-	LogFile            string
+	MaxHTTPRequestSize    uint
+	RateQuota             *throttled.RateQuota
+	MaxConcurrentRequests uint
+	FriendbotURL          *url.URL
+	LogLevel              logrus.Level
+	LogFile               string
 
 	// MaxPathLength is the maximum length of the path returned by `/paths` endpoint.
 	MaxPathLength uint
@@ -73,6 +74,12 @@ type Config struct {
 	// determining a "retention duration", each ledger roughly corresponds to 10
 	// seconds of real time.
 	HistoryRetentionCount uint
+	// HistoryRetentionReapCount is the number of ledgers worth of history data
+	// to remove per second from the Horizon database. It is intended to allow
+	// control over the amount of CPU and database load caused by reaping,
+	// especially if enabling reaping for the first time or in times of
+	// increased ledger load.
+	HistoryRetentionReapCount uint
 	// StaleThreshold represents the number of ledgers a history database may be
 	// out-of-date by before horizon begins to respond with an error to history
 	// requests.

@@ -63,13 +63,7 @@ func TestP19MetaDisabledTransaction(t *testing.T) {
 
 	clientTx := itest.MustSubmitOperations(&masterAccount, itest.Master(), op)
 
-	var txMetaResult xdr.TransactionMeta
-	err = xdr.SafeUnmarshalBase64(clientTx.ResultMetaXdr, &txMetaResult)
-	require.NoError(t, err)
-
-	assert.Equal(t, len(txMetaResult.MustV2().Operations), 0)
-	assert.Equal(t, len(txMetaResult.MustV2().TxChangesAfter), 0)
-	assert.Equal(t, len(txMetaResult.MustV2().TxChangesBefore), 0)
+	assert.Empty(t, clientTx.ResultMetaXdr)
 }
 
 func TestP20MetaTransaction(t *testing.T) {
@@ -78,7 +72,6 @@ func TestP20MetaTransaction(t *testing.T) {
 	}
 
 	itest := integration.NewTest(t, integration.Config{
-		ProtocolVersion:  20,
 		EnableSorobanRPC: true,
 	})
 
@@ -108,7 +101,6 @@ func TestP20MetaDisabledTransaction(t *testing.T) {
 	}
 
 	itest := integration.NewTest(t, integration.Config{
-		ProtocolVersion:    20,
 		HorizonEnvironment: map[string]string{"SKIP_TXMETA": "TRUE"},
 		EnableSorobanRPC:   true,
 	})
@@ -123,12 +115,5 @@ func TestP20MetaDisabledTransaction(t *testing.T) {
 	preFlightOp, minFee := itest.PreflightHostFunctions(&sourceAccount, *installContractOp)
 	clientTx := itest.MustSubmitOperationsWithFee(&sourceAccount, itest.Master(), minFee+txnbuild.MinBaseFee, &preFlightOp)
 
-	var txMetaResult xdr.TransactionMeta
-	err = xdr.SafeUnmarshalBase64(clientTx.ResultMetaXdr, &txMetaResult)
-	require.NoError(t, err)
-
-	assert.Equal(t, len(txMetaResult.MustV3().Operations), 0)
-	assert.Nil(t, txMetaResult.MustV3().SorobanMeta)
-	assert.Equal(t, len(txMetaResult.MustV3().TxChangesAfter), 0)
-	assert.Equal(t, len(txMetaResult.MustV3().TxChangesBefore), 0)
+	assert.Empty(t, clientTx.ResultMetaXdr)
 }

@@ -375,27 +375,6 @@ func TestDisablePathFinding(t *testing.T) {
 	})
 }
 
-func TestIngestionFilteringAlwaysDefaultingToTrue(t *testing.T) {
-	t.Run("ingestion filtering flag set to default value", func(t *testing.T) {
-		test := integration.NewTest(t, *integration.GetTestConfig())
-		err := test.StartHorizon()
-		assert.NoError(t, err)
-		test.WaitForHorizon()
-		assert.Equal(t, test.HorizonIngest().Config().EnableIngestionFiltering, true)
-		test.Shutdown()
-	})
-	t.Run("ingestion filtering flag set to false", func(t *testing.T) {
-		testConfig := integration.GetTestConfig()
-		testConfig.HorizonIngestParameters = map[string]string{"exp-enable-ingestion-filtering": "false"}
-		test := integration.NewTest(t, *testConfig)
-		err := test.StartHorizon()
-		assert.NoError(t, err)
-		test.WaitForHorizon()
-		assert.Equal(t, test.HorizonIngest().Config().EnableIngestionFiltering, true)
-		test.Shutdown()
-	})
-}
-
 func TestDisableTxSub(t *testing.T) {
 	t.Run("require stellar-core-url when both DISABLE_TX_SUB=false and INGEST=false", func(t *testing.T) {
 		localParams := integration.MergeMaps(networkParamArgs, map[string]string{
@@ -540,6 +519,39 @@ func TestDeprecatedOutputs(t *testing.T) {
 			"[--disable-tx-sub], has been deprecated in favor of environment variables. Please consult our "+
 			"Configuring section in the developer documentation on how to use them - "+
 			"https://developers.stellar.org/docs/run-api-server/configuring")
+	})
+	t.Run("deprecated output for --captive-core-use-db", func(t *testing.T) {
+		originalStderr := os.Stderr
+		r, w, _ := os.Pipe()
+		os.Stderr = w
+		stdLog.SetOutput(os.Stderr)
+
+		testConfig := integration.GetTestConfig()
+		testConfig.HorizonIngestParameters = map[string]string{"captive-core-use-db": "false"}
+		test := integration.NewTest(t, *testConfig)
+		err := test.StartHorizon()
+		assert.NoError(t, err)
+		test.WaitForHorizon()
+
+		// Use a wait group to wait for the goroutine to finish before proceeding
+		var wg sync.WaitGroup
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			if err := w.Close(); err != nil {
+				t.Errorf("Failed to close Stdout")
+				return
+			}
+		}()
+
+		outputBytes, _ := io.ReadAll(r)
+		wg.Wait() // Wait for the goroutine to finish before proceeding
+		_ = r.Close()
+		os.Stderr = originalStderr
+
+		assert.Contains(t, string(outputBytes), "The usage of the flag --captive-core-use-db has been deprecated. "+
+			"Setting it to false to achieve in-memory functionality on captive core will be removed in "+
+			"future releases. We recommend removing usage of this flag now in preparation.")
 	})
 }
 
